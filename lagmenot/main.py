@@ -1,13 +1,21 @@
 import random
 import os
 from pathlib import Path
-from math import cos, sin, radians
+from math import cos, sin, radians, hypot
 
 # import basic pygame modules
 import pygame as pg
 
 assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
 SCREENRECT = pg.Rect(0, 0, 1500, 1000)
+
+def change_color(surface: pg.Surface, target_color: pg.Color):
+    width = surface.get_width()
+    height = surface.get_width()
+    for x in range(width):
+        for y in range(height):
+            if surface.get_at((x,y)).a != 0:
+                surface.set_at((x,y), target_color)
 
 def load_image(file, zoom):
     """ loads an image, prepares it for play
@@ -43,13 +51,13 @@ class Player(pg.sprite.Sprite):
     images = []
     accel = 0.1
     rotate_speed = 1
-    max_velocity = 2
+    max_velocity = 2.0
     bounce_pixels = 2
 
 
     def __init__(self):
         pg.sprite.Sprite.__init__(self, self.containers)
-        self.image = self.images[0]
+        self.image = self.images[0].copy()
         self.orig_image = self.image
         self.angle = 0
         self.x_velocity = 0
@@ -60,38 +68,45 @@ class Player(pg.sprite.Sprite):
         self.facing = -1
 
     def move(self, right_pressed, left_pressed, up_pressed, down_pressed):
-        if False: #right_pressed or left_pressed:
+        if right_pressed or left_pressed:
             if right_pressed:
                 self.angle -= self.rotate_speed
             else:
                 self.angle += self.rotate_speed
             self.image = pg.transform.rotate(self.orig_image, self.angle)
-            self.rect = self.image.get_rect()
+            self.rect = self.image.get_rect(center = self.rect.center)
 
 
         compute_angle = radians(self.angle - 90)
+        old_x_velocity = self.x_velocity
+        old_y_velocity = self.y_velocity
         if up_pressed:
-            self.x_velocity += self.accel*cos(compute_angle)
-            self.y_velocity += self.accel*sin(compute_angle)
-            print(f"new x_velocity: {self.x_velocity}")
-            print(f"new y_velocity: {self.y_velocity}")
-        elif down_pressed:
             self.x_velocity -= self.accel*cos(compute_angle)
+            self.y_velocity += self.accel*sin(compute_angle)
+        elif down_pressed:
+            self.x_velocity += self.accel*cos(compute_angle)
             self.y_velocity -= self.accel*sin(compute_angle)
-            print(f"new x_velocity: {self.x_velocity}")
-            print(f"new y_velocity: {self.y_velocity}")
 
-        self.x_velocity = min(self.x_velocity, self.max_velocity)
-        self.y_velocity = min(self.y_velocity, self.max_velocity)
-        self.x_velocity = max(self.x_velocity, -1*self.max_velocity)
-        self.y_velocity = max(self.y_velocity, -1*self.max_velocity)
+        total_velocity = hypot(self.x_velocity, self.y_velocity) #pow(self.x_velocity, 2) + pow(self.y_velocity, 2)
+        if total_velocity > self.max_velocity:
+            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity
+            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity
+
+        #print(f"x_velocity: {self.x_velocity}")
+        #print(f"y_velocity: {self.y_velocity}")
+        #print(f"angle: {self.angle}")
+
+        #self.x_velocity = min(self.x_velocity, self.max_velocity)
+        #self.y_velocity = min(self.y_velocity, self.max_velocity)
+        #self.x_velocity = max(self.x_velocity, -1*self.max_velocity)
+        #self.y_velocity = max(self.y_velocity, -1*self.max_velocity)
 
         self.rect.move_ip(self.x_velocity, self.y_velocity)
         #self.rect = self.rect.clamp(SCREENRECT)
         if self.rect.top < SCREENRECT.top-self.bounce_pixels or self.rect.bottom > SCREENRECT.bottom+self.bounce_pixels:
             self.y_velocity *= -1
 
-        if self.rect.left > SCREENRECT.left or self.rect.right < SCREENRECT.right:
+        if self.rect.left < SCREENRECT.left-self.bounce_pixels or self.rect.right > SCREENRECT.right+self.bounce_pixels:
             self.x_velocity *= -1
 
         #self.rect.top = self.origtop - (self.rect.left // self.bounce % 2)
@@ -167,7 +182,11 @@ def main(winstyle=0):
     # initialize starting sprites
     clock = pg.time.Clock()
     player = Player()
-    
+    enemy = Player()
+    change_color(enemy.image, pg.Color(255, 0, 0, 255))
+    enemy.angle = -90.0
+    enemy.rect = enemy.image.get_rect(midleft=SCREENRECT.midleft)
+
     while True:
         # get input
         for event in pg.event.get():
