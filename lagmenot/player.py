@@ -15,7 +15,7 @@ class InputState:
     stop: bool
 
 
-class Player(pg.sprite.Sprite):
+class PlayerWithoutSprite():
     """ Representing the player as a moon buggy type car.
     """
 
@@ -30,7 +30,6 @@ class Player(pg.sprite.Sprite):
 
 
     def __init__(self, screenrect: pg.Rect):
-        pg.sprite.Sprite.__init__(self, self.containers)
         self.image = self.images[0].copy()
         self.orig_image = self.image
         self.angle = 0
@@ -118,3 +117,10 @@ class Player(pg.sprite.Sprite):
     def gunpos(self):
         pos = self.gun_offset + self.rect.centerx
         return pos, self.rect.top
+
+
+class Player(pg.sprite.Sprite, PlayerWithoutSprite):
+
+    def __init__(self, screenrect: pg.Rect):
+        pg.sprite.Sprite.__init__(self, self.containers)
+        PlayerWithoutSprite.__init__(self, screenrect)
