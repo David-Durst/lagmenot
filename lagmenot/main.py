@@ -7,7 +7,7 @@ from math import cos, sin, radians, hypot, ceil
 # import basic pygame modules
 import pygame as pg
 from lagmenot.player import Player, InputState
-from lagmenot.server import Server
+from lagmenot.server import Server, PredictMsg
 
 assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
 SCREENRECT = pg.Rect(0, 0, 1500, 1000)
@@ -43,6 +43,7 @@ def load_sound(file):
         print("Warning, unable to load, %s" % file)
     return None
 
+
 class Shot(pg.sprite.Sprite):
     """ a bullet the Player sprite fires.
     """
@@ -62,6 +63,7 @@ class Shot(pg.sprite.Sprite):
         self.rect.move_ip(0, self.speed)
         if self.rect.top <= 0:
             self.kill()
+
 
 def clear_callback(surf, rect):
     """ redraw background
@@ -105,6 +107,7 @@ def main(winstyle=0):
     # assign default groups to each sprite class
     Player.containers = players, all
     Shot.containers = shots, all
+    PredictMsg.containers = all
     
     # initialize starting sprites
     clock = pg.time.Clock()
@@ -114,10 +117,13 @@ def main(winstyle=0):
     enemy.angle = -90.0
     enemy.set_start(enemy.image.get_rect(midleft=SCREENRECT.midleft))
     enemy.rotate_image_and_rect()
-    enemy_on_server = enemy.clone()
+    enemy_on_server = enemy.clone_whole_player()
     change_color(enemy_on_server.image, pg.Color(0, 0, 255, 255))
 
-    server = Server(enemy_on_server)
+    # setup debug messaging
+    predict_msg = PredictMsg(SCREENRECT)
+
+    server = Server(enemy_on_server, predict_msg)
 
     running = True
     while running:
@@ -151,7 +157,13 @@ def main(winstyle=0):
         if not player.reloading and player_input.firing:
             Shot(player.gunpos())
         player.reloading = player_input.firing
-        
+
+        # handle prediction type change
+        if keystate[pg.K_0]:
+            server.change_predict_type(0)
+        if keystate[pg.K_1]:
+            server.change_predict_type(1)
+
         # draw the scene
         dirty = all.draw(screen)
         pg.display.update(dirty)

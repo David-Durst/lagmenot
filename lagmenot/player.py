@@ -51,6 +51,22 @@ class PlayerWithoutSprite:
         self.x = r.topleft[0]
         self.y = r.topleft[1]
 
+
+    def clone_no_sprite(self) -> 'PlayerWithoutSprite':
+        result = PlayerWithoutSprite(self.screenrect)
+        result.image = self.image.copy()
+        result.orig_image = result.image
+        result.angle = self.angle
+        result.x_velocity = self.x_velocity
+        result.y_velocity = self.y_velocity
+        result.rect = self.rect.copy()
+        result.x = self.x
+        result.y = self.y
+        result.reloading = self.reloading
+        result.facing = self.facing
+        result.screenrect = self.screenrect
+        return result
+
     def update_from_clone(self, clone: 'PlayerWithoutSprite'):
         if clone is None:
             return
@@ -80,8 +96,6 @@ class PlayerWithoutSprite:
             self.rotate_image_and_rect()
 
         compute_angle = radians(self.angle - 90)
-        old_x_velocity = self.x_velocity
-        old_y_velocity = self.y_velocity
         if input.up:
             self.x_velocity -= self.accel * cos(compute_angle)
             self.y_velocity += self.accel * sin(compute_angle)
@@ -111,10 +125,10 @@ class PlayerWithoutSprite:
                 self.x_velocity = 0.0
                 self.y_velocity = 0.0
 
-        print(f"x_velocity: {self.x_velocity}")
-        print(f"y_velocity: {self.y_velocity}")
-        print(f"angle: {self.angle}")
-        print(f"ignore_physics: {input.ignore_physics}")
+        #print(f"x_velocity: {self.x_velocity}")
+        #print(f"y_velocity: {self.y_velocity}")
+        #print(f"angle: {self.angle}")
+        #print(f"ignore_physics: {input.ignore_physics}")
 
         # self.x_velocity = min(self.x_velocity, self.max_velocity)
         # self.y_velocity = min(self.y_velocity, self.max_velocity)
@@ -141,7 +155,7 @@ class Player(pg.sprite.Sprite, PlayerWithoutSprite):
         pg.sprite.Sprite.__init__(self, self.containers)
         PlayerWithoutSprite.__init__(self, screenrect)
 
-    def clone(self) -> 'Player':
+    def clone_whole_player(self) -> 'Player':
         result = Player(self.screenrect)
         result.image = self.image.copy()
         result.orig_image = result.image
