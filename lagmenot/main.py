@@ -103,7 +103,7 @@ def main(winstyle=0):
     all = pg.sprite.RenderUpdates()
 
     # assign default groups to each sprite class
-    Player.containers = all
+    Player.containers = players, all
     Shot.containers = shots, all
     
     # initialize starting sprites
@@ -112,7 +112,7 @@ def main(winstyle=0):
     enemy = Player(SCREENRECT)
     change_color(enemy.image, pg.Color(255, 0, 0, 255))
     enemy.angle = -90.0
-    enemy.rect = enemy.image.get_rect(midleft=SCREENRECT.midleft)
+    enemy.set_start(enemy.image.get_rect(midleft=SCREENRECT.midleft))
     enemy.rotate_image_and_rect()
     enemy_on_server = enemy.clone()
     change_color(enemy_on_server.image, pg.Color(0, 0, 255, 255))

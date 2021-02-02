@@ -1,6 +1,7 @@
 from math import cos, sin, radians, hypot, ceil
 from dataclasses import dataclass
 import pygame as pg
+from typing import Tuple
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,11 @@ class PlayerWithoutSprite:
         self.reloading = 0
         self.facing = -1
         self.screenrect = screenrect
+
+    def set_start(self, r: pg.rect):
+        self.rect = r
+        self.x = r.topleft[0]
+        self.y = r.topleft[1]
 
     def update_from_clone(self, clone: 'PlayerWithoutSprite'):
         if clone is None:

@@ -29,7 +29,7 @@ class Server:
     last_client_to_server: int
 
     def __init__(self, enemy: Player):
-        self.enemy = enemy.clone()
+        self.enemy = enemy
         self.queue = deque()
         self.last_server_to_client = 0
         self.last_client_to_server = 0
