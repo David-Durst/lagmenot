@@ -70,7 +70,7 @@ class Player(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.orig_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def move(self, right_pressed, left_pressed, up_pressed, down_pressed):
+    def move(self, right_pressed, left_pressed, up_pressed, down_pressed, stop_pressed, ignore_physics):
         if right_pressed or left_pressed:
             if right_pressed:
                 self.angle -= self.rotate_speed
@@ -94,9 +94,27 @@ class Player(pg.sprite.Sprite):
             self.x_velocity = self.x_velocity / total_velocity * self.max_velocity
             self.y_velocity = self.y_velocity / total_velocity * self.max_velocity
 
-        #print(f"x_velocity: {self.x_velocity}")
-        #print(f"y_velocity: {self.y_velocity}")
-        #print(f"angle: {self.angle}")
+        if ignore_physics:
+            if right_pressed:
+                self.x_velocity = self.max_velocity
+                self.y_velocity = 0.0
+            if left_pressed:
+                self.x_velocity = -1*self.max_velocity
+                self.y_velocity = 0.0
+            if down_pressed:
+                self.x_velocity = 0.0
+                self.y_velocity = self.max_velocity
+            if up_pressed:
+                self.x_velocity = 0.0
+                self.y_velocity = -1*self.max_velocity
+            if stop_pressed:
+                self.x_velocity = 0.0
+                self.y_velocity = 0.0
+
+        print(f"x_velocity: {self.x_velocity}")
+        print(f"y_velocity: {self.y_velocity}")
+        print(f"angle: {self.angle}")
+        print(f"ignore_physics: {ignore_physics}")
 
         #self.x_velocity = min(self.x_velocity, self.max_velocity)
         #self.y_velocity = min(self.y_velocity, self.max_velocity)
@@ -197,24 +215,6 @@ def main(winstyle=0):
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
-            elif event.type == pg.KEYDOWN:
-                if event.key == pg.K_f:
-                    if not fullscreen:
-                        print("Changing to FULLSCREEN")
-                        screen_backup = screen.copy()
-                        screen = pg.display.set_mode(
-                            SCREENRECT.size, winstyle | pg.FULLSCREEN, bestdepth
-                        )
-                        screen.blit(screen_backup, (0, 0))
-                    else:
-                        print("Changing to windowed mode")
-                        screen_backup = screen.copy()
-                        screen = pg.display.set_mode(
-                            SCREENRECT.size, winstyle, bestdepth
-                        )
-                        screen.blit(screen_backup, (0, 0))
-                    pg.display.flip()
-                    fullscreen = not fullscreen
 
         keystate = pg.key.get_pressed()
         
@@ -229,7 +229,9 @@ def main(winstyle=0):
         left_pressed = keystate[pg.K_LEFT]
         up_pressed = keystate[pg.K_UP]
         down_pressed = keystate[pg.K_DOWN]
-        player.move(right_pressed, left_pressed, up_pressed, down_pressed)
+        stop_pressed = keystate[pg.K_SPACE]
+        ignore_physics = keystate[pg.K_LCTRL]
+        player.move(right_pressed, left_pressed, up_pressed, down_pressed, stop_pressed, ignore_physics)
         firing = keystate[pg.K_SPACE]
         if not player.reloading and firing:
             Shot(player.gunpos())
