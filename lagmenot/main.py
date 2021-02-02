@@ -114,6 +114,10 @@ def main(winstyle=0):
     enemy.angle = -90.0
     enemy.rect = enemy.image.get_rect(midleft=SCREENRECT.midleft)
     enemy.rotate_image_and_rect()
+    enemy_on_server = enemy.clone()
+    change_color(enemy_on_server.image, pg.Color(0, 0, 255, 255))
+
+    server = Server(enemy_on_server)
 
     running = True
     while running:
@@ -136,6 +140,14 @@ def main(winstyle=0):
         player_input = InputState(0, keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
                                   keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
         player.move(player_input)
+
+        # handle enemy logic
+        enemy_input = InputState(0, keystate[pg.K_w], keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
+                                  keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
+        server.client_to_server(enemy_input)
+        server.apply_cmds()
+        enemy.update_from_clone(server.server_to_client())
+
         if not player.reloading and player_input.firing:
             Shot(player.gunpos())
         player.reloading = player_input.firing
