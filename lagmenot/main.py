@@ -1,7 +1,7 @@
 import random
 import os
 from pathlib import Path
-from math import cos, sin, radians, hypot
+from math import cos, sin, radians, hypot, ceil
 
 # import basic pygame modules
 import pygame as pg
@@ -10,8 +10,7 @@ assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
 SCREENRECT = pg.Rect(0, 0, 1500, 1000)
 
 def change_color(surface: pg.Surface, target_color: pg.Color):
-    width = surface.get_width()
-    height = surface.get_width()
+    width, height = surface.get_size()
     for x in range(width):
         for y in range(height):
             if surface.get_at((x,y)).a != 0:
@@ -50,7 +49,7 @@ class Player(pg.sprite.Sprite):
     gun_offset = -11
     images = []
     accel = 0.1
-    rotate_speed = 1
+    rotate_speed = 1.0
     max_velocity = 2.0
     bounce_pixels = 2
 
@@ -67,14 +66,17 @@ class Player(pg.sprite.Sprite):
         self.origtop = self.rect.top
         self.facing = -1
 
+    def rotate_image_and_rect(self):
+        self.image = pg.transform.rotate(self.orig_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
     def move(self, right_pressed, left_pressed, up_pressed, down_pressed):
         if right_pressed or left_pressed:
             if right_pressed:
                 self.angle -= self.rotate_speed
             else:
                 self.angle += self.rotate_speed
-            self.image = pg.transform.rotate(self.orig_image, self.angle)
-            self.rect = self.image.get_rect(center = self.rect.center)
+            self.rotate_image_and_rect()
 
 
         compute_angle = radians(self.angle - 90)
@@ -186,6 +188,7 @@ def main(winstyle=0):
     change_color(enemy.image, pg.Color(255, 0, 0, 255))
     enemy.angle = -90.0
     enemy.rect = enemy.image.get_rect(midleft=SCREENRECT.midleft)
+    enemy.rotate_image_and_rect()
 
     while True:
         # get input
