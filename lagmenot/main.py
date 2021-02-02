@@ -6,7 +6,7 @@ from math import cos, sin, radians, hypot, ceil
 
 # import basic pygame modules
 import pygame as pg
-from lagmenot.player import Player
+from lagmenot.player import Player, InputState
 from lagmenot.server import Server
 
 assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
@@ -133,17 +133,12 @@ def main(winstyle=0):
         all.update()
         
         # handle player input
-        right_pressed = keystate[pg.K_RIGHT]
-        left_pressed = keystate[pg.K_LEFT]
-        up_pressed = keystate[pg.K_UP]
-        down_pressed = keystate[pg.K_DOWN]
-        stop_pressed = keystate[pg.K_SPACE]
-        ignore_physics = keystate[pg.K_LCTRL]
-        player.move(right_pressed, left_pressed, up_pressed, down_pressed, stop_pressed, ignore_physics)
-        firing = keystate[pg.K_SPACE]
-        if not player.reloading and firing:
+        player_input = InputState(0, keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
+                                  keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
+        player.move(player_input)
+        if not player.reloading and player_input.firing:
             Shot(player.gunpos())
-        player.reloading = firing
+        player.reloading = player_input.firing
         
         # draw the scene
         dirty = all.draw(screen)

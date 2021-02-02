@@ -1,7 +1,19 @@
 from math import cos, sin, radians, hypot, ceil
-
-# import basic pygame modules
+from dataclasses import dataclass
 import pygame as pg
+
+@dataclass(frozen=True)
+class InputState:
+    player_num: int
+    up: bool
+    down: bool
+    left: bool
+    right: bool
+    firing: bool
+    # debug mode settings
+    ignore_physics: bool
+    stop: bool
+
 
 class Player(pg.sprite.Sprite):
     """ Representing the player as a moon buggy type car.
@@ -41,9 +53,9 @@ class Player(pg.sprite.Sprite):
         self.y += self.y_velocity
         self.rect.topleft = (int(self.x), int(self.y))
 
-    def move(self, right_pressed, left_pressed, up_pressed, down_pressed, stop_pressed, ignore_physics):
-        if right_pressed or left_pressed:
-            if right_pressed:
+    def move(self, input: InputState):
+        if input.right or input.left:
+            if input.right:
                 self.angle -= self.rotate_speed
             else:
                 self.angle += self.rotate_speed
@@ -53,10 +65,10 @@ class Player(pg.sprite.Sprite):
         compute_angle = radians(self.angle - 90)
         old_x_velocity = self.x_velocity
         old_y_velocity = self.y_velocity
-        if up_pressed:
+        if input.up:
             self.x_velocity -= self.accel*cos(compute_angle)
             self.y_velocity += self.accel*sin(compute_angle)
-        elif down_pressed:
+        elif input.down:
             self.x_velocity += self.accel*cos(compute_angle)
             self.y_velocity -= self.accel*sin(compute_angle)
 
@@ -65,27 +77,27 @@ class Player(pg.sprite.Sprite):
             self.x_velocity = self.x_velocity / total_velocity * self.max_velocity #self.max_velocity * cos(compute_angle) * -1#s
             self.y_velocity = self.y_velocity / total_velocity * self.max_velocity #self.max_velocity * sin(compute_angle)#
 
-        if ignore_physics:
-            if right_pressed:
+        if input.ignore_physics:
+            if input.right:
                 self.x_velocity = self.max_velocity
                 self.y_velocity = 0.0
-            if left_pressed:
+            if input.left:
                 self.x_velocity = -1*self.max_velocity
                 self.y_velocity = 0.0
-            if down_pressed:
+            if input.down:
                 self.x_velocity = 0.0
                 self.y_velocity = self.max_velocity
-            if up_pressed:
+            if input.up:
                 self.x_velocity = 0.0
                 self.y_velocity = -1*self.max_velocity
-            if stop_pressed:
+            if input.stop:
                 self.x_velocity = 0.0
                 self.y_velocity = 0.0
 
         print(f"x_velocity: {self.x_velocity}")
         print(f"y_velocity: {self.y_velocity}")
         print(f"angle: {self.angle}")
-        print(f"ignore_physics: {ignore_physics}")
+        print(f"ignore_physics: {input.ignore_physics}")
 
         #self.x_velocity = min(self.x_velocity, self.max_velocity)
         #self.y_velocity = min(self.y_velocity, self.max_velocity)
