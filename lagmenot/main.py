@@ -50,7 +50,7 @@ class Player(pg.sprite.Sprite):
     images = []
     accel = 0.1
     rotate_speed = 1.0
-    max_velocity = 2.0
+    max_velocity = 4.0
     bounce_pixels = 2
 
 
@@ -62,6 +62,8 @@ class Player(pg.sprite.Sprite):
         self.x_velocity = 0
         self.y_velocity = 0
         self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
+        self.x = self.rect.topleft[0]
+        self.y = self.rect.topleft[1]
         self.reloading = 0
         self.origtop = self.rect.top
         self.facing = -1
@@ -69,6 +71,11 @@ class Player(pg.sprite.Sprite):
     def rotate_image_and_rect(self):
         self.image = pg.transform.rotate(self.orig_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
+
+    def move_rect(self):
+        self.x += self.x_velocity
+        self.y += self.y_velocity
+        self.rect.topleft = (int(self.x), int(self.y))
 
     def move(self, right_pressed, left_pressed, up_pressed, down_pressed, stop_pressed, ignore_physics):
         if right_pressed or left_pressed:
@@ -91,8 +98,8 @@ class Player(pg.sprite.Sprite):
 
         total_velocity = hypot(self.x_velocity, self.y_velocity) #pow(self.x_velocity, 2) + pow(self.y_velocity, 2)
         if total_velocity > self.max_velocity:
-            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity
-            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity
+            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity #self.max_velocity * cos(compute_angle) * -1#s
+            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity #self.max_velocity * sin(compute_angle)#
 
         if ignore_physics:
             if right_pressed:
@@ -121,7 +128,8 @@ class Player(pg.sprite.Sprite):
         #self.x_velocity = max(self.x_velocity, -1*self.max_velocity)
         #self.y_velocity = max(self.y_velocity, -1*self.max_velocity)
 
-        self.rect.move_ip(self.x_velocity, self.y_velocity)
+        #self.rect.move_ip(self.x_velocity, self.y_velocity)
+        self.move_rect()
         #self.rect = self.rect.clamp(SCREENRECT)
         if self.rect.top < SCREENRECT.top-self.bounce_pixels or self.rect.bottom > SCREENRECT.bottom+self.bounce_pixels:
             self.y_velocity *= -1
