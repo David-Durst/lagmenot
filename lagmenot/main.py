@@ -147,7 +147,7 @@ def main(winstyle=0):
         
         # handle player input
         player_input = create_one_tick_input(keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
-                                             keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
+                                             keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_x])
         cur_time = pg.time.get_ticks()
         player.move(player_input, cur_time)
 

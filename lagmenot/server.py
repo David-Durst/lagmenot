@@ -21,7 +21,7 @@ class RemoteRect:
         return self.topleft_x, self.topleft_y
 
 
-predict_messages = ["no command", "replay command"]
+predict_messages = ["no prediction", "empty command"]
 
 class PredictType(Enum):
     NO_COMMAND = 0
