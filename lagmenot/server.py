@@ -90,7 +90,7 @@ class Server:
             if self.predict_type == PredictType.NO_COMMAND:
                 return self.last_server_to_client_packet_received
             elif self.predict_type == PredictType.REPLAY_COMMAND:
-                self.last_server_to_client_packet_received.move(no_input)
+                self.last_server_to_client_packet_received.move(no_input, cur_time)
                 return self.last_server_to_client_packet_received
 
     def change_predict_type(self, new_type: int):

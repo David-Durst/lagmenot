@@ -152,7 +152,7 @@ def main(winstyle=0):
         player.move(player_input, cur_time)
 
         # handle enemy logic
-        enemy_input = create_one_tick_input(True, keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
+        enemy_input = create_one_tick_input(keystate[pg.K_w], keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
                                             keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
         #print(f"cur ticks: {pg.time.get_ticks()}")
         print(f"enemy_on_server x_velocity: {enemy_on_server.x_velocity}")

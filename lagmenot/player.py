@@ -94,9 +94,9 @@ class PlayerWithoutSprite:
         self.image = pg.transform.rotate(self.orig_image, self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def move_rect(self):
-        self.x += self.x_velocity
-        self.y += self.y_velocity
+    def move_rect(self, time_delta):
+        self.x += self.x_velocity * time_delta
+        self.y += self.y_velocity * time_delta
         self.rect.topleft = (int(self.x), int(self.y))
 
     def move(self, input: InputCmd, cur_time: int):
@@ -112,8 +112,8 @@ class PlayerWithoutSprite:
 
         total_velocity = hypot(self.x_velocity, self.y_velocity)  # pow(self.x_velocity, 2) + pow(self.y_velocity, 2)
         if total_velocity > self.max_velocity:
-            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity * time_delta # self.max_velocity * cos(compute_angle) * -1#s
-            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity * time_delta # self.max_velocity * sin(compute_angle)#
+            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity  # self.max_velocity * cos(compute_angle) * -1#s
+            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity  # self.max_velocity * sin(compute_angle)#
 
         if input.ignore_physics:
             if input.right:
@@ -143,21 +143,21 @@ class PlayerWithoutSprite:
         # self.y_velocity = max(self.y_velocity, -1*self.max_velocity)
 
         # self.rect.move_ip(self.x_velocity, self.y_velocity)
-        self.move_rect()
+        self.move_rect(time_delta)
         # self.rect = self.rect.clamp(SCREENRECT)
         if self.rect.top < self.screenrect.top - self.bounce_pixels or self.rect.bottom > self.screenrect.bottom + self.bounce_pixels:
             self.y_velocity *= -1
             if self.rect.top < self.screenrect.top - self.bounce_pixels:
-                self.y += self.bounce_pixels/2
+                self.y += self.bounce_pixels/2 * time_delta
             if self.rect.bottom > self.screenrect.bottom + self.bounce_pixels:
-                self.y -= self.bounce_pixels/2
+                self.y -= self.bounce_pixels/2 * time_delta
 
         if self.rect.left < self.screenrect.left - self.bounce_pixels or self.rect.right > self.screenrect.right + self.bounce_pixels:
             self.x_velocity *= -1
             if self.rect.left < self.screenrect.left - self.bounce_pixels:
-                self.x += self.bounce_pixels/2
+                self.x += self.bounce_pixels/2 * time_delta
             if self.rect.right > self.screenrect.right + self.bounce_pixels:
-                self.x -= self.bounce_pixels/2
+                self.x -= self.bounce_pixels/2 * time_delta
 
     def gunpos(self):
         pos = self.gun_offset + self.rect.centerx
