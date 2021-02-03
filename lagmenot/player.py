@@ -53,6 +53,7 @@ class PlayerWithoutSprite:
         self.reloading = 0
         self.facing = -1
         self.screenrect = screenrect
+        self.last_move_time = 0
 
     def set_start(self, r: pg.rect):
         self.rect = r
@@ -73,6 +74,7 @@ class PlayerWithoutSprite:
         result.reloading = self.reloading
         result.facing = self.facing
         result.screenrect = self.screenrect
+        result.last_move_time = self.last_move_time
         return result
 
     def update_from_clone(self, clone: 'PlayerWithoutSprite'):
@@ -97,7 +99,9 @@ class PlayerWithoutSprite:
         self.y += self.y_velocity
         self.rect.topleft = (int(self.x), int(self.y))
 
-    def move(self, input: InputCmd):
+    def move(self, input: InputCmd, cur_time: int):
+        time_delta = (cur_time - self.last_move_time) / 10
+        self.last_move_time = cur_time
         if input.right != 0.0 or input.left != 0.0:
             self.angle -= self.rotate_speed * (input.right - input.left)
             self.rotate_image_and_rect()
@@ -108,8 +112,8 @@ class PlayerWithoutSprite:
 
         total_velocity = hypot(self.x_velocity, self.y_velocity)  # pow(self.x_velocity, 2) + pow(self.y_velocity, 2)
         if total_velocity > self.max_velocity:
-            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity  # self.max_velocity * cos(compute_angle) * -1#s
-            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity  # self.max_velocity * sin(compute_angle)#
+            self.x_velocity = self.x_velocity / total_velocity * self.max_velocity * time_delta # self.max_velocity * cos(compute_angle) * -1#s
+            self.y_velocity = self.y_velocity / total_velocity * self.max_velocity * time_delta # self.max_velocity * sin(compute_angle)#
 
         if input.ignore_physics:
             if input.right:

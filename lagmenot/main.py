@@ -148,17 +148,17 @@ def main(winstyle=0):
         # handle player input
         player_input = create_one_tick_input(keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
                                              keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
-        player.move(player_input)
+        cur_time = pg.time.get_ticks()
+        player.move(player_input, cur_time)
 
         # handle enemy logic
         enemy_input = create_one_tick_input(True, keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
                                             keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
         #print(f"cur ticks: {pg.time.get_ticks()}")
-        #print(f"enemy_on_server x_velocity: {enemy_on_server.x_velocity}")
-        #print(f"enemy_on_server y_velocity: {enemy_on_server.y_velocity}")
-        #print(f"enemy_on_server angle: {enemy_on_server.angle}")
-        #print(f"enemy angle: {enemy.angle}")
-        cur_time = pg.time.get_ticks()
+        print(f"enemy_on_server x_velocity: {enemy_on_server.x_velocity}")
+        print(f"enemy_on_server y_velocity: {enemy_on_server.y_velocity}")
+        print(f"enemy_on_server angle: {enemy_on_server.angle}")
+        print(f"enemy angle: {enemy.angle}")
         server.send_client_to_server(enemy_input, cur_time)
         server.receive_client_to_server(cur_time)
         server.send_server_to_client(cur_time)

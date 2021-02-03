@@ -68,7 +68,7 @@ class Server:
         """
         if self.client_to_server_queue and self.client_to_server_queue[0].send_tick + self.latency < cur_time:
             packet = self.client_to_server_queue.popleft()
-            self.enemy.move(packet.payload)
+            self.enemy.move(packet.payload, cur_time)
 
             # processed a packet, so send the response
             self.next_server_to_client_send_tick = min(self.next_server_to_client_send_tick, cur_time)
