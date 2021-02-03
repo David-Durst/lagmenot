@@ -58,26 +58,20 @@ class Server:
         self.predict_msg = predict_msg
         self.predict_msg.msg = predict_messages[0]
 
-    def send_client_to_server(self, cmd: InputCmd):
+    def send_client_to_server(self, cmd: InputCmd, cur_time: int):
         """ Send input commands from the client to the server
         """
-        cur_time = pg.time.get_ticks()
         self.next_client_to_server_packet_to_send = merge_input_cmds(self.next_client_to_server_packet_to_send, cmd)
         if self.next_client_to_server_send_tick < cur_time:
-            print(f"send_client_to_server on tick {cur_time}")
             self.next_client_to_server_send_tick = cur_time + self.cmd_rate
-            print(f"check next_client_to_server_recv: {self.next_client_to_server_recv_tick}")
             self.next_client_to_server_recv_tick = min(self.next_client_to_server_recv_tick, cur_time + self.latency)
-            print(f"set next_client_to_server_recv to {self.next_client_to_server_recv_tick}")
             self.client_to_server_queue.append(PacketWrapper(cur_time, self.next_client_to_server_packet_to_send))
             self.next_client_to_server_packet_to_send = no_input
 
-    def receive_client_to_server(self):
+    def receive_client_to_server(self, cur_time: int):
         """ Read the next packet to the server off the wire if it's "traveled" long enough time
         """
-        cur_time = pg.time.get_ticks()
         if self.next_client_to_server_recv_tick < cur_time:
-            print(f"receive_client_to_server on tick {cur_time}")
             packet = self.client_to_server_queue.popleft()
             # receive latency ticks after next packet sent if there are any in queue, otherwise latency after next send
             if self.client_to_server_queue:
@@ -86,24 +80,29 @@ class Server:
                 self.next_client_to_server_recv_tick = self.next_client_to_server_send_tick + self.latency
             self.enemy.move(packet.payload)
 
-    def send_server_to_client(self):
+            # processed a packet, so send the response
+            self.next_server_to_client_send_tick = cur_time
+
+    def send_server_to_client(self, cur_time: int):
         """ Send state commands from the server to the client
         """
-        cur_time = pg.time.get_ticks()
         if self.next_server_to_client_send_tick < cur_time:
+            print(f"server send on tick {cur_time}")
             self.next_server_to_client_send_tick = cur_time + self.cmd_rate
             self.next_server_to_client_recv_tick = min(self.next_server_to_client_recv_tick, cur_time + self.latency)
+            print(f"next client receive on tick {self.next_server_to_client_recv_tick}")
             self.server_to_client_queue.append(PacketWrapper(cur_time, self.enemy.clone_no_sprite()))
 
-    def receive_server_to_client(self) -> PlayerWithoutSprite:
+    def receive_server_to_client(self, cur_time: int) -> PlayerWithoutSprite:
         """ Read the next packet to the client off the wire if it's "traveled" long enough time
         """
-        cur_time = pg.time.get_ticks()
         if self.next_server_to_client_recv_tick < cur_time:
+            print(f"client receive on tick {cur_time}")
             if self.server_to_client_queue:
                 self.next_server_to_client_recv_tick = self.server_to_client_queue[0].send_tick + self.latency
             else:
                 self.next_server_to_client_recv_tick = self.next_server_to_client_send_tick + self.latency
+            print(f"next client receive on tick {self.next_server_to_client_recv_tick}")
             self.last_server_to_client_packet_received = self.server_to_client_queue.popleft().payload
             return self.last_server_to_client_packet_received
         else:

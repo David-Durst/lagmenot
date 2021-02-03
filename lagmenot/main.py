@@ -158,10 +158,11 @@ def main(winstyle=0):
         #print(f"enemy_on_server y_velocity: {enemy_on_server.y_velocity}")
         #print(f"enemy_on_server angle: {enemy_on_server.angle}")
         #print(f"enemy angle: {enemy.angle}")
-        server.send_client_to_server(enemy_input)
-        server.receive_client_to_server()
-        server.send_server_to_client()
-        enemy.update_from_clone(server.receive_server_to_client())
+        cur_time = pg.time.get_ticks()
+        server.send_client_to_server(enemy_input, cur_time)
+        server.receive_client_to_server(cur_time)
+        server.send_server_to_client(cur_time)
+        enemy.update_from_clone(server.receive_server_to_client(cur_time))
 
         if not player.reloading and player_input.firing:
             Shot(player.gunpos())
