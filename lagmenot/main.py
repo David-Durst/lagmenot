@@ -6,7 +6,7 @@ from math import cos, sin, radians, hypot, ceil
 
 # import basic pygame modules
 import pygame as pg
-from lagmenot.player import Player, PlayerWithoutSprite, InputState
+from lagmenot.player import Player, PlayerWithoutSprite, InputCmd, create_one_tick_input
 from lagmenot.server import Server, PredictMsg
 
 assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
@@ -146,20 +146,21 @@ def main(winstyle=0):
         all.update()
         
         # handle player input
-        player_input = InputState(0, keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
-                                  keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
+        player_input = create_one_tick_input(keystate[pg.K_UP], keystate[pg.K_DOWN], keystate[pg.K_LEFT], keystate[pg.K_RIGHT],
+                                             keystate[pg.K_SPACE], keystate[pg.K_LCTRL], keystate[pg.K_SPACE])
         player.move(player_input)
 
         # handle enemy logic
-        enemy_input = InputState(0, keystate[pg.K_w], keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
-                                  keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
+        enemy_input = create_one_tick_input(keystate[pg.K_w], keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
+                                            keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
         print(f"enemy_on_server x_velocity: {enemy_on_server.x_velocity}")
         print(f"enemy_on_server y_velocity: {enemy_on_server.y_velocity}")
         print(f"enemy_on_server angle: {enemy_on_server.angle}")
         print(f"enemy angle: {enemy.angle}")
-        server.client_to_server(enemy_input)
-        server.apply_cmds()
-        enemy.update_from_clone(server.server_to_client())
+        server.send_client_to_server(enemy_input)
+        server.receive_client_to_server()
+        server.send_server_to_client()
+        enemy.update_from_clone(server.receive_server_to_client())
 
         if not player.reloading and player_input.firing:
             Shot(player.gunpos())

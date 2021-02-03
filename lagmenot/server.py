@@ -1,15 +1,9 @@
-from lagmenot.player import Player, PlayerWithoutSprite, InputState, no_input
+from lagmenot.player import Player, PlayerWithoutSprite, InputCmd, no_input, merge_input_cmds
 import pygame as pg
 from dataclasses import dataclass
 from typing import Deque
 from collections import deque
 from enum import Enum
-
-
-@dataclass(frozen=True)
-class InputPacket:
-    cmd: InputState
-    receive_time: int
 
 
 @dataclass
@@ -30,57 +24,77 @@ class PredictType(Enum):
 
 class Server:
     enemy: Player
-    queue: Deque[InputPacket]
+    client_to_server_queue: Deque[InputCmd]
+    server_to_client_queue: Deque[PlayerWithoutSprite]
     # in milliseconds
     latency = 50
-    last_server_to_client_tick: int
-    last_client_to_server_tick: int
-    last_server_to_client_message: PlayerWithoutSprite
-    last_applied_cmd: InputState
+    cmd_rate = 50
+    next_client_to_server_send_tick: int
+    next_client_to_server_recv_tick: int
+    next_server_to_client_send_tick: int
+    next_server_to_client_recv_tick: int
+    next_client_to_server_packet_to_send: InputCmd
+    last_server_to_client_packet_received: PlayerWithoutSprite
     predict_type: PredictType
     predict_msg: 'PredictMsg'
 
     def __init__(self, enemy: Player, predict_msg: 'PredictMsg'):
         self.enemy = enemy
-        self.queue = deque()
-        self.last_server_to_client_tick = 0
-        self.last_client_to_server_tick = 0
-        self.last_server_to_client_message = None
+        self.client_to_server_queue = deque()
+        self.server_to_client_queue = deque()
+        self.next_client_to_server_send_tick = self.latency
+        self.next_client_to_server_recv_tick = self.latency*10000
+        self.next_server_to_client_send_tick = self.latency*10000
+        self.next_server_to_client_recv_tick = self.latency*10000
+        self.next_client_to_server_packet_to_send = no_input
+        self.last_server_to_client_packet_received = None
         self.predict_type = PredictType(0)
         self.predict_msg = predict_msg
         self.predict_msg.msg = predict_messages[0]
-        self.last_applied_cmd = no_input
 
-    def client_to_server(self, cmd: InputState):
+    def send_client_to_server(self, cmd: InputCmd):
+        """ Send input commands from the client to the server
+        """
         cur_time = pg.time.get_ticks()
-        if self.last_client_to_server_tick + self.latency < cur_time:
-            self.last_client_to_server_tick = cur_time
-            self.queue.append(InputPacket(cmd, pg.time.get_ticks()))
+        self.next_client_to_server_packet_to_send = merge_input_cmds(self.next_client_to_server_packet_to_send, cmd)
+        if self.next_client_to_server_send_tick < cur_time:
+            self.next_client_to_server_send_tick = cur_time + self.cmd_rate
+            self.next_client_to_server_recv_tick = min(self.next_server_to_client_recv_tick, cur_time + self.latency)
+            self.client_to_server_queue.append(self.next_client_to_server_packet_to_send)
+            self.next_client_to_server_packet_to_send = no_input
 
-    def server_to_client(self) -> PlayerWithoutSprite:
+    def receive_client_to_server(self):
+        """ Read the next packet to the server off the wire if it's "traveled" long enough time
+        """
         cur_time = pg.time.get_ticks()
-        if self.last_server_to_client_tick + self.latency < cur_time:
-            self.last_server_to_client_tick = cur_time
-            self.last_server_to_client_message = self.enemy.clone_no_sprite()
-            return self.enemy
+        if self.next_client_to_server_recv_tick < cur_time:
+            self.next_server_to_client_recv_tick = self.next_server_to_client_send_tick + self.latency
+            packet = self.client_to_server_queue.popleft()
+            self.enemy.move(packet)
+
+    def send_server_to_client(self):
+        """ Send state commands from the server to the client
+        """
+        cur_time = pg.time.get_ticks()
+        if self.next_server_to_client_send_tick < cur_time:
+            self.next_server_to_client_send_tick = cur_time + self.cmd_rate
+            self.next_server_to_client_recv_tick = min(self.next_server_to_client_recv_tick, cur_time + self.latency)
+            self.server_to_client_queue.append(self.enemy.clone_no_sprite())
+
+    def receive_server_to_client(self):
+        """ Read the next packet to the client off the wire if it's "traveled" long enough time
+        """
+        cur_time = pg.time.get_ticks()
+        if self.next_server_to_client_recv_tick < cur_time:
+            self.next_server_to_client_recv_tick = self.next_server_to_client_send_tick + self.latency
+            self.last_server_to_client_packet_received = self.server_to_client_queue.popleft()
+            return self.last_server_to_client_packet_received
         else:
-            self.last_server_to_client_message.move(self.last_applied_cmd)
             if self.predict_type == PredictType.NO_COMMAND:
-                return None
-            else:
-                return self.last_server_to_client_message
-
-    def apply_cmds(self):
-        cur_time = pg.time.get_ticks()
-        applied_at_least_one_command = False
-        while self.queue and self.queue[0].receive_time + self.latency > cur_time:
-            applied_at_least_one_command = True
-            ready_cmd = self.queue.popleft()
-            if ready_cmd.cmd.right or ready_cmd.cmd.left:
-                print("hi")
-            self.enemy.move(ready_cmd.cmd)
-        if not applied_at_least_one_command:
-            self.enemy.move(no_input)
+                return self.last_server_to_client_packet_received
+            elif self.predict_type == PredictType.REPLAY_COMMAND:
+                self.last_server_to_client_packet_received.move(no_input)
+                return self.last_server_to_client_packet_received
 
     def change_predict_type(self, new_type: int):
         self.predict_type = PredictType(new_type)

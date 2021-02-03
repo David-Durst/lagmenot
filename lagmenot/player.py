@@ -5,19 +5,27 @@ from typing import Tuple
 
 
 @dataclass(frozen=True)
-class InputState:
-    player_num: int
-    up: bool
-    down: bool
-    left: bool
-    right: bool
+class InputCmd:
+    up: float
+    down: float
+    left: float
+    right: float
     firing: bool
     # debug mode settings
     ignore_physics: bool
     stop: bool
 
 
-no_input = InputState(0, False, False, False, False, False, False, False)
+def create_one_tick_input(up: bool, down: bool, left: bool, right: bool,
+                          firing: bool, ignore_physics: bool, stop: bool):
+    return InputCmd(1.0 if up else 0.0, 1.0 if down else 0.0, 1.0 if left else 0.0, 1.0 if right else 0.0,
+                    firing, ignore_physics, stop)
+
+def merge_input_cmds(input1: InputCmd, input2: InputCmd):
+    return InputCmd(input1.up + input2.up, input1.down + input2.down, input1.left + input2.left, input1.right + input2.right,
+                    input1.firing or input2.firing, input1.ignore_physics or input2.ignore_physics, input1.stop or input2.stop)
+
+no_input = create_one_tick_input(False, False, False, False, False, False, False)
 
 
 class PlayerWithoutSprite:
@@ -89,21 +97,14 @@ class PlayerWithoutSprite:
         self.y += self.y_velocity
         self.rect.topleft = (int(self.x), int(self.y))
 
-    def move(self, input: InputState):
-        if input.right or input.left:
-            if input.right:
-                self.angle -= self.rotate_speed
-            else:
-                self.angle += self.rotate_speed
+    def move(self, input: InputCmd):
+        if input.right != 0.0 or input.left != 0.0:
+            self.angle -= self.rotate_speed * (input.right - input.left)
             self.rotate_image_and_rect()
 
         compute_angle = radians(self.angle - 90)
-        if input.up:
-            self.x_velocity -= self.accel * cos(compute_angle)
-            self.y_velocity += self.accel * sin(compute_angle)
-        elif input.down:
-            self.x_velocity += self.accel * cos(compute_angle)
-            self.y_velocity -= self.accel * sin(compute_angle)
+        self.x_velocity -= (input.up - input.down) * self.accel * cos(compute_angle)
+        self.y_velocity += (input.up - input.down) * self.accel * sin(compute_angle)
 
         total_velocity = hypot(self.x_velocity, self.y_velocity)  # pow(self.x_velocity, 2) + pow(self.y_velocity, 2)
         if total_velocity > self.max_velocity:
