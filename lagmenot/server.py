@@ -36,9 +36,7 @@ class Server:
     latency = 50
     cmd_rate = 50
     next_client_to_server_send_tick: int
-    next_client_to_server_recv_tick: int
     next_server_to_client_send_tick: int
-    next_server_to_client_recv_tick: int
     next_client_to_server_packet_to_send: InputCmd
     last_server_to_client_packet_received: PlayerWithoutSprite
     predict_type: PredictType
@@ -49,9 +47,7 @@ class Server:
         self.client_to_server_queue = deque()
         self.server_to_client_queue = deque()
         self.next_client_to_server_send_tick = self.latency
-        self.next_client_to_server_recv_tick = self.latency*10000
         self.next_server_to_client_send_tick = self.latency*10000
-        self.next_server_to_client_recv_tick = self.latency*10000
         self.next_client_to_server_packet_to_send = no_input
         self.last_server_to_client_packet_received = None
         self.predict_type = PredictType(0)
@@ -64,20 +60,14 @@ class Server:
         self.next_client_to_server_packet_to_send = merge_input_cmds(self.next_client_to_server_packet_to_send, cmd)
         if self.next_client_to_server_send_tick < cur_time:
             self.next_client_to_server_send_tick = cur_time + self.cmd_rate
-            self.next_client_to_server_recv_tick = min(self.next_client_to_server_recv_tick, cur_time + self.latency)
             self.client_to_server_queue.append(PacketWrapper(cur_time, self.next_client_to_server_packet_to_send))
             self.next_client_to_server_packet_to_send = no_input
 
     def receive_client_to_server(self, cur_time: int):
         """ Read the next packet to the server off the wire if it's "traveled" long enough time
         """
-        if self.next_client_to_server_recv_tick < cur_time:
+        if self.client_to_server_queue and self.client_to_server_queue[0].send_tick + self.latency < cur_time:
             packet = self.client_to_server_queue.popleft()
-            # receive latency ticks after next packet sent if there are any in queue, otherwise latency after next send
-            if self.client_to_server_queue:
-                self.next_client_to_server_recv_tick = self.client_to_server_queue[0].send_tick + self.latency
-            else:
-                self.next_client_to_server_recv_tick = self.next_client_to_server_send_tick + self.latency
             self.enemy.move(packet.payload)
 
             # processed a packet, so send the response
@@ -88,17 +78,12 @@ class Server:
         """
         if self.next_server_to_client_send_tick < cur_time:
             self.next_server_to_client_send_tick = cur_time + self.cmd_rate
-            self.next_server_to_client_recv_tick = min(self.next_server_to_client_recv_tick, cur_time + self.latency)
             self.server_to_client_queue.append(PacketWrapper(cur_time, self.enemy.clone_no_sprite()))
 
     def receive_server_to_client(self, cur_time: int) -> PlayerWithoutSprite:
         """ Read the next packet to the client off the wire if it's "traveled" long enough time
         """
-        if self.next_server_to_client_recv_tick < cur_time:
-            if self.server_to_client_queue:
-                self.next_server_to_client_recv_tick = self.server_to_client_queue[0].send_tick + self.latency
-            else:
-                self.next_server_to_client_recv_tick = self.next_server_to_client_send_tick + self.latency
+        if self.server_to_client_queue and self.server_to_client_queue[0].send_tick + self.latency < cur_time:
             self.last_server_to_client_packet_received = self.server_to_client_queue.popleft().payload
             return self.last_server_to_client_packet_received
         else:
