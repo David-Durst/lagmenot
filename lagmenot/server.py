@@ -23,6 +23,10 @@ class RemoteRect:
 
 predict_messages = ["no command", "replay command"]
 
+class PredictType(Enum):
+    NO_COMMAND = 0
+    REPLAY_COMMAND = 1
+
 
 class Server:
     enemy: Player
@@ -32,6 +36,8 @@ class Server:
     last_server_to_client_tick: int
     last_client_to_server_tick: int
     last_server_to_client_message: PlayerWithoutSprite
+    last_applied_cmd: InputState
+    predict_type: PredictType
     predict_msg: 'PredictMsg'
 
     def __init__(self, enemy: Player, predict_msg: 'PredictMsg'):
@@ -40,8 +46,10 @@ class Server:
         self.last_server_to_client_tick = 0
         self.last_client_to_server_tick = 0
         self.last_server_to_client_message = None
+        self.predict_type = PredictType(0)
         self.predict_msg = predict_msg
         self.predict_msg.msg = predict_messages[0]
+        self.last_applied_cmd = no_input
 
     def client_to_server(self, cmd: InputState):
         cur_time = pg.time.get_ticks()
@@ -53,9 +61,14 @@ class Server:
         cur_time = pg.time.get_ticks()
         if self.last_server_to_client_tick + self.latency < cur_time:
             self.last_server_to_client_tick = cur_time
+            self.last_server_to_client_message = self.enemy.clone_no_sprite()
             return self.enemy
         else:
-            return None
+            self.last_server_to_client_message.move(self.last_applied_cmd)
+            if self.predict_type == PredictType.NO_COMMAND:
+                return None
+            else:
+                return self.last_server_to_client_message
 
     def apply_cmds(self):
         cur_time = pg.time.get_ticks()
@@ -63,11 +76,14 @@ class Server:
         while self.queue and self.queue[0].receive_time + self.latency > cur_time:
             applied_at_least_one_command = True
             ready_cmd = self.queue.popleft()
+            if ready_cmd.cmd.right or ready_cmd.cmd.left:
+                print("hi")
             self.enemy.move(ready_cmd.cmd)
         if not applied_at_least_one_command:
             self.enemy.move(no_input)
 
     def change_predict_type(self, new_type: int):
+        self.predict_type = PredictType(new_type)
         self.predict_msg.msg = predict_messages[new_type]
 
 

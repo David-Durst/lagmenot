@@ -6,7 +6,7 @@ from math import cos, sin, radians, hypot, ceil
 
 # import basic pygame modules
 import pygame as pg
-from lagmenot.player import Player, InputState
+from lagmenot.player import Player, PlayerWithoutSprite, InputState
 from lagmenot.server import Server, PredictMsg
 
 assets_dir = Path(os.path.abspath(__file__)).parent.parent / Path("assets")
@@ -90,7 +90,7 @@ def main(winstyle=0):
     # Load images, assign to sprite classes
     # (do this before the classes are used, after screen setup)
     img = load_image("ship.png", 0.25)
-    Player.images = [img, pg.transform.flip(img, 1, 0)]
+    PlayerWithoutSprite.images = [img, pg.transform.flip(img, 1, 0)]
     Shot.images = [load_image("shot.png", 0.25)]
 
     # decorate the game window
@@ -117,8 +117,11 @@ def main(winstyle=0):
     enemy.angle = -90.0
     enemy.set_start(enemy.image.get_rect(midleft=SCREENRECT.midleft))
     enemy.rotate_image_and_rect()
-    enemy_on_server = enemy.clone_whole_player()
+    enemy_on_server = Player(SCREENRECT)
     change_color(enemy_on_server.image, pg.Color(0, 0, 255, 255))
+    enemy_on_server.angle = -90.0
+    enemy_on_server.set_start(enemy.image.get_rect(midleft=SCREENRECT.midleft))
+    enemy_on_server.rotate_image_and_rect()
 
     # setup debug messaging
     predict_msg = PredictMsg(SCREENRECT)
@@ -150,6 +153,10 @@ def main(winstyle=0):
         # handle enemy logic
         enemy_input = InputState(0, keystate[pg.K_w], keystate[pg.K_s], keystate[pg.K_a], keystate[pg.K_d],
                                   keystate[pg.K_f], keystate[pg.K_LCTRL], keystate[pg.K_g])
+        print(f"enemy_on_server x_velocity: {enemy_on_server.x_velocity}")
+        print(f"enemy_on_server y_velocity: {enemy_on_server.y_velocity}")
+        print(f"enemy_on_server angle: {enemy_on_server.angle}")
+        print(f"enemy angle: {enemy.angle}")
         server.client_to_server(enemy_input)
         server.apply_cmds()
         enemy.update_from_clone(server.server_to_client())

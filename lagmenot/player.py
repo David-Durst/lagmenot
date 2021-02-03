@@ -77,6 +77,8 @@ class PlayerWithoutSprite:
         self.y = clone.y
         self.reloading = clone.reloading
         self.facing = clone.facing
+        self.angle = clone.angle
+        self.rotate_image_and_rect()
 
     def rotate_image_and_rect(self):
         self.image = pg.transform.rotate(self.orig_image, self.angle)
@@ -140,9 +142,17 @@ class PlayerWithoutSprite:
         # self.rect = self.rect.clamp(SCREENRECT)
         if self.rect.top < self.screenrect.top - self.bounce_pixels or self.rect.bottom > self.screenrect.bottom + self.bounce_pixels:
             self.y_velocity *= -1
+            if self.rect.top < self.screenrect.top - self.bounce_pixels:
+                self.y += self.bounce_pixels/2
+            if self.rect.bottom > self.screenrect.bottom + self.bounce_pixels:
+                self.y -= self.bounce_pixels/2
 
         if self.rect.left < self.screenrect.left - self.bounce_pixels or self.rect.right > self.screenrect.right + self.bounce_pixels:
             self.x_velocity *= -1
+            if self.rect.left < self.screenrect.left - self.bounce_pixels:
+                self.x += self.bounce_pixels/2
+            if self.rect.right > self.screenrect.right + self.bounce_pixels:
+                self.x -= self.bounce_pixels/2
 
     def gunpos(self):
         pos = self.gun_offset + self.rect.centerx
@@ -158,7 +168,7 @@ class Player(pg.sprite.Sprite, PlayerWithoutSprite):
     def clone_whole_player(self) -> 'Player':
         result = Player(self.screenrect)
         result.image = self.image.copy()
-        result.orig_image = result.image
+        result.orig_image = self.orig_image.copy()
         result.angle = self.angle
         result.x_velocity = self.x_velocity
         result.y_velocity = self.y_velocity
